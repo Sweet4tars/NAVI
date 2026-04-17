@@ -1,0 +1,27 @@
+# Local runtime state
+.data/
+.venv/
+.pytest_cache/
+
+# Python cache / build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+build/
+dist/
+
+# Test / coverage artifacts
+.coverage
+htmlcov/
+
+# IDE / OS noise
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log

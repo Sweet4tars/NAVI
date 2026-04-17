@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Domestic Trip Planner</p>
+    <h1>Turn trains, hotels, guide notes, and budget into one trip brief.</h1>
+    <p class="lede">Use the web form for repeated planning, or call the same backend from Codex skill and CLI.</p>
+  </div>
+  <div class="hero-card">
+    <p>Current scope</p>
+    <ul class="inline-list">
+      <li>Mainland China</li>
+      <li>Rail / Drive</li>
+      <li>Planning only</li>
+      <li>Reuse local login state</li>
+    </ul>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" action="/plan" class="trip-form">
+    <label>Origin<input name="origin" value="Shanghai" required></label>
+    <label>Destination<input name="destination" value="Suzhou" required></label>
+    <label>Start date<input name="start_date" type="date" value="{{ today }}" required></label>
+    <label>End date<input name="end_date" type="date"></label>
+    <label>Days<input name="days" type="number" value="3" min="1" max="15"></label>
+    <label>Adults<input name="adults" type="number" value="2" min="1" max="12"></label>
+    <label>Children<input name="children" type="number" value="0" min="0" max="8"></label>
+    <label>Transport
+      <select name="transport_mode">
+        <option value="rail">Rail</option>
+        <option value="drive">Drive</option>
+      </select>
+    </label>
+    <label>Hotel min<input name="hotel_budget_min" type="number" min="0" step="1"></label>
+    <label>Hotel max<input name="hotel_budget_max" type="number" min="0" step="1" value="600"></label>
+    <label>Pace
+      <select name="pace">
+        <option value="slow">Slow</option>
+        <option value="balanced" selected>Balanced</option>
+        <option value="dense">Dense</option>
+      </select>
+    </label>
+    <label>Must go<input name="must_go" placeholder="Humble Administrator's Garden, Pingjiang Road"></label>
+    <label>Avoid<input name="avoid" placeholder="Crowded malls, early departures"></label>
+    <label>Hotel prefs<input name="hotel_preferences" placeholder="Near metro, breakfast, quiet"></label>
+    <label class="checkbox"><input name="parking_required" type="checkbox" value="true"> Parking required</label>
+    <button type="submit" class="primary-btn">Build trip</button>
+  </form>
+</section>
+{% endblock %}

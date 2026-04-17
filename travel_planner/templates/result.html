@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div>
+    <p class="eyebrow">Trip Result</p>
+    <h1>{{ job.request.origin }} -> {{ job.request.destination }}</h1>
+    <p class="lede">{{ job.result.summary if job.result else "Result is not ready yet." }}</p>
+  </div>
+</section>
+
+{% if job.result %}
+<section class="result-grid">
+  <article class="panel">
+    <h2>Daily itinerary</h2>
+    {% for day in job.result.daily_itinerary %}
+    <div class="timeline-card">
+      <h3>Day {{ day.day_index }} · {{ day.date }}</h3>
+      <p><strong>{{ day.theme }}</strong></p>
+      <p>Morning: {{ day.morning }}</p>
+      <p>Afternoon: {{ day.afternoon }}</p>
+      <p>Evening: {{ day.evening }}</p>
+      <p>Lodging: {{ day.lodging }}</p>
+    </div>
+    {% endfor %}
+  </article>
+
+  <article class="panel">
+    <h2>Transport</h2>
+    {% for item in job.result.transport_options %}
+    <div class="option-card">
+      <strong>{{ item.label }}</strong>
+      <p>{{ item.depart_at }} - {{ item.arrive_at }}</p>
+      <p>{{ item.duration_minutes }} minutes</p>
+      <p>{% if item.price_snapshot %}CNY {{ "%.0f"|format(item.price_snapshot) }}{% else %}Price unavailable{% endif %}</p>
+      <p>{{ item.tags | join(" / ") }}</p>
+    </div>
+    {% endfor %}
+
+    <h2>Hotels</h2>
+    {% for hotel in job.result.hotel_candidates %}
+    <div class="option-card">
+      <strong>{{ hotel.name }}</strong>
+      <p>{{ hotel.district }} · CNY {{ "%.0f"|format(hotel.nightly_price) }}/night</p>
+      <p><span class="pill">{{ hotel.candidate_kind }}</span> <span class="pill">{{ hotel.price_confidence }}</span></p>
+      <p>{{ hotel.why_selected }}</p>
+      <p>{{ hotel.tags | join(" / ") }}</p>
+    </div>
+    {% endfor %}
+  </article>
+
+  <article class="panel">
+    <h2>Guide notes</h2>
+    {% for note in job.result.guide_notes %}
+    <div class="evidence-card">
+      <strong>{{ note.title }}</strong>
+      <p>{{ note.excerpt }}</p>
+      <p>{{ note.tips | join(" / ") }}</p>
+    </div>
+    {% endfor %}
+
+    <h2>Budget</h2>
+    <div class="budget">
+      <p>Transport: CNY {{ "%.0f"|format(job.result.budget_estimate.rail_or_drive_total) }}</p>
+      <p>Hotel: CNY {{ "%.0f"|format(job.result.budget_estimate.hotel_total) }}</p>
+      <p>Food and misc: CNY {{ "%.0f"|format(job.result.budget_estimate.daily_food_and_misc_total) }}</p>
+      <p><strong>Total: CNY {{ "%.0f"|format(job.result.budget_estimate.grand_total) }}</strong></p>
+    </div>
+
+    <h2>Sources</h2>
+    {% for evidence in job.result.source_evidence %}
+    <div class="evidence-card">
+      <strong>{{ evidence.source }} · {{ evidence.title }}</strong>
+      <p>{{ evidence.excerpt }}</p>
+      <a href="{{ evidence.url }}" target="_blank" rel="noreferrer">Open source</a>
+    </div>
+    {% endfor %}
+  </article>
+</section>
+{% else %}
+<section class="panel">
+  <p>Result is not ready yet. Return to the job page and refresh.</p>
+</section>
+{% endif %}
+{% endblock %}

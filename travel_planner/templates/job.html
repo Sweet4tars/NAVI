@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero compact">
+  <div>
+    <p class="eyebrow">Job Tracking</p>
+    <h1>Planning in progress</h1>
+    <p class="lede">If a source needs login, sign in once in your local browser and then click recheck.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="job-grid">
+    <div>
+      <h2>Job</h2>
+      <div id="job-summary" class="status-box">Loading...</div>
+    </div>
+    <div>
+      <h2>Sources</h2>
+      <div id="source-list" class="source-list"></div>
+    </div>
+  </div>
+  <div class="job-actions">
+    <button id="resume-btn" type="button" class="primary-btn hidden" onclick="resumeJob()">I finished verification, continue</button>
+  </div>
+  <a id="result-link" class="primary-btn hidden" href="/results/{{ job_id }}">Open result</a>
+</section>
+
+<script>
+  const jobId = "{{ job_id }}";
+
+  async function refresh() {
+    const jobResponse = await fetch(`/api/jobs/${jobId}`);
+    const job = await jobResponse.json();
+    const sources = Object.values(job.source_statuses || {});
+
+    document.getElementById("job-summary").innerHTML = `
+      <p><strong>${job.status}</strong></p>
+      <p>${job.request.origin} -> ${job.request.destination}</p>
+      <p>Progress ${job.progress}%</p>
+      <p>${(job.warnings || []).join("; ") || "No warnings yet."}</p>
+    `;
+
+    document.getElementById("source-list").innerHTML = sources.map(source => `
+      <div class="source-card">
+        <div>
+          <strong>${source.source}</strong>
+          <p>${source.state}</p>
+          <p>${source.detail}</p>
+        </div>
+        <button type="button" onclick="recheck('${source.source}')">Recheck</button>
+      </div>
+    `).join("") || "<p>No source checks yet.</p>";
+
+    if (job.status === "completed" || job.status === "partial_result") {
+      document.getElementById("result-link").classList.remove("hidden");
+    } else {
+      document.getElementById("result-link").classList.add("hidden");
+      setTimeout(refresh, 2500);
+    }
+
+    const needsAttention = sources.some(source => source.state === "awaiting_login" || source.state === "failed");
+    const resumeButton = document.getElementById("resume-btn");
+    if (needsAttention || job.status === "partial_result") {
+      resumeButton.classList.remove("hidden");
+    } else {
+      resumeButton.classList.add("hidden");
+    }
+  }
+
+  async function recheck(source) {
+    const response = await fetch(`/api/jobs/${jobId}/sources/${source}/recheck`, { method: "POST" });
+    const payload = await response.json();
+    if (payload.resumed) {
+      setTimeout(refresh, 1200);
+      return;
+    }
+    refresh();
+  }
+
+  async function resumeJob() {
+    await fetch(`/api/jobs/${jobId}/resume`, { method: "POST" });
+    setTimeout(refresh, 1200);
+  }
+
+  refresh();
+</script>
+{% endblock %}
