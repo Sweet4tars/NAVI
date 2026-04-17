@@ -1,4 +1,4 @@
-# Travel Planner Agent
+# Navigation-AI-for-Voyages-and-Itineraries
 
 本地运行的中国境内旅游规划系统，提供 `Web 页面` 和 `Codex skill / CLI` 两种入口。
 
