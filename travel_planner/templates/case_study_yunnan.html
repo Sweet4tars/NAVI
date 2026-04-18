@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+{% if has_amap_frontend_map %}
+{% if amap_security_js_code %}
+<script>
+  window._AMapSecurityConfig = {securityJsCode: "{{ amap_security_js_code }}"};
+</script>
+{% endif %}
+<script src="https://webapi.amap.com/maps?v=2.0&key={{ amap_js_api_key }}"></script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="share-stage">
+  <div class="share-stage-map-shell">
+    {% if has_amap_frontend_map %}
+    <div id="case-amap" class="share-stage-map" data-geo='{{ case.route_map.geo_nodes | tojson }}'></div>
+    {% endif %}
+    <div class="share-stage-map-fallback {% if has_amap_frontend_map %}share-stage-map-fallback--armed{% endif %}">
+      <svg class="route-map route-map--stage" viewBox="0 0 {{ case.route_map.width }} {{ case.route_map.height }}" role="img" aria-label="自驾路线简化地图">
+        <defs>
+          <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#7fb3ff" />
+            <stop offset="45%" stop-color="#5f87e8" />
+            <stop offset="100%" stop-color="#f28854" />
+          </linearGradient>
+          <filter id="routeGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        {% for segment in case.route_map.segments %}
+        <polyline class="route-map-line route-map-segment-glow" data-segment-index="{{ segment.index }}" points="{{ segment.points }}" />
+        <polyline class="route-map-line route-map-segment" data-segment-index="{{ segment.index }}" points="{{ segment.points }}" />
+        {% endfor %}
+        {% for node in case.route_map.nodes %}
+        <circle class="route-map-node-halo {% if node.is_terminal %}terminal{% endif %}" cx="{{ node.x }}" cy="{{ node.y }}" r="{% if node.is_terminal %}14{% else %}11{% endif %}" />
+        <circle class="route-map-node {% if node.is_terminal %}terminal{% endif %}" cx="{{ node.x }}" cy="{{ node.y }}" r="{% if node.is_terminal %}8{% else %}6{% endif %}" />
+        <text class="route-map-label" x="{{ node.x + 12 }}" y="{{ node.y - 12 }}">{{ node.label }}</text>
+        {% endfor %}
+      </svg>
+    </div>
+
+    <div id="route-city-popover" class="route-city-popover hidden">
+      <div class="route-city-popover-head">
+        <div>
+          <p class="eyebrow route-pop-kicker">City Focus</p>
+          <h3 id="route-city-title">城市小地图</h3>
+        </div>
+        <button id="route-city-close" type="button" class="route-city-close" aria-label="关闭城市小地图">×</button>
+      </div>
+      <div class="route-city-toolbar">
+        <button id="route-city-fit" type="button" class="route-city-tool route-city-tool-wide">返回总览</button>
+        <div class="route-city-zoom-control">
+          <button id="route-city-zoom-in" type="button" class="route-city-tool" aria-label="放大">+</button>
+          <div id="route-city-zoom-indicator" class="route-city-zoom-indicator">12</div>
+          <button id="route-city-zoom-out" type="button" class="route-city-tool" aria-label="缩小">−</button>
+        </div>
+      </div>
+      <div id="route-city-mini-map" class="route-city-mini-map"></div>
+      <div id="route-city-meta" class="route-city-meta"></div>
+    </div>
+
+    <aside class="share-stage-overlay">
+      <button id="share-overlay-toggle" type="button" class="share-overlay-toggle" aria-expanded="false">
+        <span>路线摘要</span>
+        <span class="share-overlay-toggle-icon">+</span>
+      </button>
+      <p class="share-overlay-preview">{{ case.share_summary.day_count }} 天 · {{ case.share_summary.total_km }}km</p>
+      <div id="share-overlay-body" class="share-stage-overlay-body collapsed">
+        <p class="eyebrow">{% if share_mode %}Readonly Share{% else %}Case Study{% endif %}</p>
+        <h1>{{ case.title }}</h1>
+        <ul class="inline-list share-meta">
+          <li>{{ case.date_range }}</li>
+          <li>{{ case.travelers }}</li>
+        </ul>
+        <div class="share-summary-stack">
+          <div class="share-summary-card">
+            <p class="summary-kicker">主线</p>
+            <p class="summary-value">{{ case.share_summary.start }} → {{ case.share_summary.end }}</p>
+          </div>
+          <div class="share-summary-card">
+            <p class="summary-kicker">规模</p>
+            <p class="summary-value">{{ case.share_summary.day_count }} 天 · {{ case.share_summary.total_km }}km</p>
+          </div>
+          {% for leg in case.share_summary.hardest_legs[:1] %}
+          <div class="share-summary-card">
+            <p class="summary-kicker">重点路段</p>
+            <p class="summary-value">{{ leg.from }} → {{ leg.to }}</p>
+            <p class="summary-soft">{{ leg.distance }} / {{ leg.drive_time }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="action-row share-stage-actions">
+          {% if not share_mode %}
+          <a class="ghost-btn" href="{{ share_href }}">打开分享页</a>
+          {% endif %}
+          <a class="primary-btn" href="{{ excel_href }}">下载 Excel</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<section class="share-accordion-section">
+  <div class="section-head">
+    <p class="eyebrow">Stay Zones</p>
+    <h2>住哪一片</h2>
+    <p class="lede compact">每个城市默认折叠。展开后查看该城市的优先住区、高性价比住宿和三餐候选。</p>
+  </div>
+
+  <div class="city-accordion-list">
+    {% for stay in case.stay_recommendations %}
+    {% set stay_day = case.days | selectattr('base_city', 'equalto', stay.city) | list %}
+    <details class="city-accordion" id="city-{{ stay.anchor }}" data-route-index="{{ stay.route_index }}"{% if stay.default_expanded %} open{% endif %}>
+      <summary class="city-accordion-summary">
+        <div class="city-summary-main">
+          <p class="city-summary-kicker">{{ stay.city }}</p>
+          <h3>{{ stay.priority_zone }}</h3>
+          <p class="city-summary-sub">次选：{{ stay.secondary_zone }}</p>
+        </div>
+        <div class="city-summary-tags">
+          {% for tag in stay.nearby_tags %}
+          <span class="zone-tag">{{ tag }}</span>
+          {% endfor %}
+        </div>
+      </summary>
+
+      <div class="city-accordion-body">
+        <div class="city-expanded-grid">
+          <article class="city-map-card">
+            <div class="city-card-head">
+              <div>
+                <p class="eyebrow">Map</p>
+                <h4>{{ stay.city }} 小地图</h4>
+              </div>
+              <span class="pill">{{ stay.student_fit }} 学生适配</span>
+            </div>
+            {% if has_amap_frontend_map %}
+            <div
+              class="city-amap"
+              data-zone='{{ stay.zone_geo | tojson }}'
+              data-city="{{ stay.city }}"
+              data-anchor="{{ stay.anchor }}"
+            ></div>
+            {% endif %}
+            <div class="zone-mini-map-shell {% if has_amap_frontend_map %}zone-mini-map-shell--fallback{% endif %}">
+              <svg class="zone-mini-map" viewBox="0 0 {{ stay.zone_map.width }} {{ stay.zone_map.height }}" role="img" aria-label="{{ stay.city }} 住区示意">
+                <path class="zone-mini-grid" d="M18 24 H202 M18 70 H202 M18 116 H202 M32 16 V124 M110 16 V124 M188 16 V124" />
+                <circle class="zone-node primary" cx="{{ stay.zone_map.primary.x }}" cy="{{ stay.zone_map.primary.y }}" r="9" />
+                <text class="zone-node-label" x="{{ stay.zone_map.primary.x + 12 }}" y="{{ stay.zone_map.primary.y + 4 }}">{{ stay.zone_map.primary.label }}</text>
+                <circle class="zone-node secondary" cx="{{ stay.zone_map.secondary.x }}" cy="{{ stay.zone_map.secondary.y }}" r="7" />
+                <text class="zone-node-label" x="{{ stay.zone_map.secondary.x + 10 }}" y="{{ stay.zone_map.secondary.y + 4 }}">{{ stay.zone_map.secondary.label }}</text>
+                <circle class="zone-node poi" cx="{{ stay.zone_map.poi.x }}" cy="{{ stay.zone_map.poi.y }}" r="6" />
+                <text class="zone-node-label" x="{{ stay.zone_map.poi.x + 10 }}" y="{{ stay.zone_map.poi.y + 4 }}">{{ stay.zone_map.poi.label }}</text>
+                <rect class="zone-node parking" x="{{ stay.zone_map.parking.x - 7 }}" y="{{ stay.zone_map.parking.y - 7 }}" width="14" height="14" rx="3" />
+                <text class="zone-node-label" x="{{ stay.zone_map.parking.x + 10 }}" y="{{ stay.zone_map.parking.y + 4 }}">{{ stay.zone_map.parking.label }}</text>
+                <path class="zone-node food" d="M{{ stay.zone_map.food.x }} {{ stay.zone_map.food.y - 8 }} l7 14 h-14 z" />
+                <text class="zone-node-label" x="{{ stay.zone_map.food.x + 10 }}" y="{{ stay.zone_map.food.y + 4 }}">{{ stay.zone_map.food.label }}</text>
+              </svg>
+            </div>
+            <p class="city-map-reason">{{ stay.zone_reason }}</p>
+          </article>
+
+          <article class="city-info-card">
+            <div class="city-card-head">
+              <div>
+                <p class="eyebrow">Stay</p>
+                <h4>位置里的高性价比住宿</h4>
+              </div>
+              <span class="pill">{{ stay.hotel_candidates | length }} 个候选</span>
+            </div>
+            <div class="student-hotel-list">
+              {% for hotel in stay.hotel_candidates %}
+              <div class="student-hotel-card">
+                <strong>{{ hotel.name }}</strong>
+                <p>{{ hotel.type }} / {{ hotel.price }}</p>
+                <p>{{ hotel.reason }}</p>
+                <a href="{{ hotel.source_url }}" target="_blank" rel="noreferrer">查看来源</a>
+              </div>
+              {% endfor %}
+            </div>
+          </article>
+
+          <article class="city-food-card">
+            <div class="city-card-head">
+              <div>
+                <p class="eyebrow">Meals</p>
+                <h4>{{ stay.city }} 三餐候选</h4>
+              </div>
+            </div>
+            {% if stay_day %}
+            {% for day in stay_day %}
+            {% for meal in day.meals %}
+            <div class="meal-slot-card">
+              <div class="meal-slot-top">
+                <strong>{{ meal.slot }}</strong>
+                <span class="pill">{{ meal.candidates | length }} 个候选</span>
+              </div>
+              {% for candidate in meal.candidates %}
+              <div class="meal-candidate-card">
+                <strong>{{ candidate.name }}</strong>
+                <p>{{ candidate.source }}</p>
+                <p>{{ candidate.reason }}</p>
+                <a href="{{ candidate.url }}" target="_blank" rel="noreferrer">打开来源</a>
+              </div>
+              {% endfor %}
+            </div>
+            {% endfor %}
+            {% endfor %}
+            {% else %}
+            <div class="meal-slot-card">
+              <p>当前城市没有单独的三餐候选数据。</p>
+            </div>
+            {% endif %}
+          </article>
+        </div>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="share-timeline-section">
+  <div class="section-head">
+    <p class="eyebrow">Timeline</p>
+    <h2>每日时间线</h2>
+  </div>
+  <div class="timeline-column">
+    {% for day in case.days %}
+    <div class="case-day-card">
+      <div class="case-day-head">
+        <div>
+          <p class="day-kicker">Day {{ day.day_index }}</p>
+          <h3>{{ day.date }} · {{ day.title }}</h3>
+        </div>
+        <span class="pill intensity-{{ day.intensity }}">{{ day.intensity }}</span>
+      </div>
+      <p><strong>落脚城市：</strong>{{ day.base_city }}</p>
+      <p><strong>优先住区：</strong>{{ day.priority_zone }}</p>
+      <ul class="case-schedule">
+        {% for item in day.schedule %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="share-budget-section">
+  <div class="budget-stack">
+    <p><strong>酒店：</strong>{{ case.budget.hotel_total }}</p>
+    <p><strong>车费：</strong>{{ case.budget.car_total }}</p>
+    <p><strong>餐饮：</strong>{{ case.budget.meal_total }}</p>
+    <p><strong>总计：</strong>{{ case.budget.grand_total }}</p>
+  </div>
+  <div class="warning-list">
+    {% for warning in case.warnings %}
+    <p>{{ warning }}</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if has_amap_frontend_map %}
+<script>
+  (function () {
+    function createMarker(map, item, large) {
+      const styleMap = {
+        primary: { color: "#bf5b2c", size: large ? 14 : 12 },
+        secondary: { color: "#d8a289", size: large ? 12 : 10 },
+        poi: { color: "#346e65", size: large ? 11 : 10 },
+        food: { color: "#d36b2d", size: large ? 11 : 10 },
+        parking: { color: "#172227", size: large ? 11 : 10 },
+      };
+      const style = styleMap[item.kind] || styleMap.poi;
+      return new AMap.CircleMarker({
+        center: [item.lng, item.lat],
+        radius: style.size,
+        fillColor: style.color,
+        fillOpacity: 0.84,
+        strokeColor: "#fffaf2",
+        strokeWeight: 2,
+        bubble: true,
+      });
+    }
+
+      const mainHost = document.getElementById("case-amap");
+      const svgSegments = Array.from(document.querySelectorAll(".route-map-segment"));
+      const svgGlowSegments = Array.from(document.querySelectorAll(".route-map-segment-glow"));
+    const routePopover = document.getElementById("route-city-popover");
+    const routeCityTitle = document.getElementById("route-city-title");
+    const routeCityMeta = document.getElementById("route-city-meta");
+    const routeCityClose = document.getElementById("route-city-close");
+    const routeCityFit = document.getElementById("route-city-fit");
+    const routeCityZoomIn = document.getElementById("route-city-zoom-in");
+    const routeCityZoomOut = document.getElementById("route-city-zoom-out");
+    const routeCityZoomIndicator = document.getElementById("route-city-zoom-indicator");
+    const overlayToggle = document.getElementById("share-overlay-toggle");
+    const overlayBody = document.getElementById("share-overlay-body");
+    let mainMap = null;
+    let mainPolylines = [];
+    let mainMarkers = [];
+      let popoverMap = null;
+      let popoverOverlays = [];
+
+    const cityPayload = {{ case.floating_city_cards | tojson }};
+    const cityByAnchor = Object.fromEntries(cityPayload.map((item) => [item.anchor, item]));
+
+    function setSvgHighlight(segmentIndex) {
+      svgSegments.forEach((segment) => {
+        const active = Number(segment.dataset.segmentIndex) === segmentIndex;
+        segment.classList.toggle("active", active);
+      });
+      svgGlowSegments.forEach((segment) => {
+        const active = Number(segment.dataset.segmentIndex) === segmentIndex;
+        segment.classList.toggle("active", active);
+      });
+    }
+
+    function setMapHighlight(segmentIndex) {
+      mainPolylines.forEach((polyline, index) => {
+        polyline.setOptions({
+          strokeColor: index === segmentIndex ? "#82a9ff" : "#c9c8c4",
+          strokeWeight: index === segmentIndex ? 6.4 : 3.2,
+          strokeOpacity: index === segmentIndex ? 0.84 : 0.18,
+          zIndex: index === segmentIndex ? 140 : 90,
+        });
+      });
+    }
+
+    function clearMainMapTimers() {
+      ["__routeZoomTimer", "__routePanTimer", "__routeFitTimer", "__routeResetTimer"].forEach((key) => {
+        window.clearTimeout(window[key]);
+      });
+    }
+
+    function syncRouteHighlight(segmentIndex, focusCity) {
+      setSvgHighlight(segmentIndex);
+      setMapHighlight(segmentIndex);
+      if (!mainMap) return;
+      clearMainMapTimers();
+      if (segmentIndex < 0 || !focusCity || !mainPolylines[segmentIndex]) {
+        if (mainMarkers.length || mainPolylines.length) {
+          window.__routeResetTimer = window.setTimeout(() => {
+            mainMap.setFitView([...mainMarkers, ...mainPolylines], false, [74, 74, 74, 74], 1320);
+          }, 120);
+        }
+        return;
+      }
+
+      const routeNode = cityByAnchor[focusCity];
+      const overlays = [mainPolylines[segmentIndex]];
+      const targetMarker = routeNode
+        ? mainMarkers.find((marker) => marker.getExtData && marker.getExtData()?.city === routeNode.city)
+        : null;
+      const targetPos = targetMarker && targetMarker.getPosition ? targetMarker.getPosition() : null;
+      if (targetMarker) {
+        overlays.push(targetMarker);
+      }
+      if (targetPos) {
+        const currentZoom = mainMap.getZoom ? mainMap.getZoom() : 6.6;
+        const focusZoom = Math.max(Math.min(currentZoom + 0.35, 7.4), 6.15);
+        window.__routeZoomTimer = window.setTimeout(() => {
+          mainMap.setZoomAndCenter(focusZoom, targetPos, false, 920);
+        }, 60);
+        window.__routePanTimer = window.setTimeout(() => {
+          mainMap.panTo(targetPos, 860);
+        }, 180);
+      }
+      window.__routeFitTimer = window.setTimeout(() => {
+        mainMap.setFitView(overlays, false, [190, 98, 420, 148], 1520);
+      }, 430);
+    }
+
+    function renderPopover(cityData) {
+      if (!routePopover || !cityData) return;
+      routeCityTitle.textContent = cityData.city + " 小地图";
+      const hotelPreview = (cityData.hotel_preview || []).slice(0, 2).map((item) => item.name).join(" · ");
+      const mealPreview = (cityData.meal_preview || []).slice(0, 2).map((item) => item.name).join(" · ");
+      routeCityMeta.innerHTML = `
+        <div class="route-city-meta-group">
+          <span class="route-city-meta-kicker">住哪片</span>
+          <p><strong>${cityData.priority_zone}</strong></p>
+          <p>${(cityData.nearby_tags || []).join(" · ")}</p>
+        </div>
+        <div class="route-city-meta-group">
+          <span class="route-city-meta-kicker">就近推荐</span>
+          <p>${hotelPreview || "优先选核心片区的高性价比住宿"}</p>
+          <p>${mealPreview || "优先选步行就能吃到的在地餐馆"}</p>
+        </div>
+      `;
+      routePopover.classList.remove("hidden");
+      if (!window.AMap) return;
+      if (popoverMap) {
+        popoverMap.destroy();
+      }
+      popoverMap = new AMap.Map("route-city-mini-map", {
+        zoom: 12.6,
+        center: cityData.zone_geo.center,
+        viewMode: "2D",
+        mapStyle: "amap://styles/whitesmoke",
+        dragEnable: true,
+        keyboardEnable: false,
+        doubleClickZoom: true,
+        scrollWheel: true,
+        zoomEnable: true,
+      });
+      popoverOverlays = [];
+      popoverMap.on("zoomchange", () => {
+        if (routeCityZoomIndicator) {
+          routeCityZoomIndicator.textContent = String(Math.round(popoverMap.getZoom()));
+        }
+      });
+      cityData.zone_geo.markers.forEach((item) => {
+        const marker = createMarker(popoverMap, item, false);
+        marker.on("click", () => {
+          popoverMap.setZoomAndCenter(15.5, [item.lng, item.lat], false, 720);
+        });
+        popoverMap.add(marker);
+        popoverOverlays.push(marker);
+        const label = new AMap.Text({
+          text: item.label,
+          anchor: "center",
+          offset: new AMap.Pixel(18, 0),
+          position: [item.lng, item.lat],
+          style: {
+            border: "1px solid rgba(255,255,255,0.02)",
+            background: "rgba(255,255,255,0.22)",
+            color: "rgba(31,41,51,0.48)",
+            padding: "1px 5px",
+            borderRadius: "999px",
+            fontSize: "8px",
+            fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, PingFang SC, sans-serif",
+          },
+        });
+        label.on("click", () => {
+          popoverMap.setZoomAndCenter(15.5, [item.lng, item.lat], false, 720);
+        });
+        popoverMap.add(label);
+        popoverOverlays.push(label);
+      });
+      popoverMap.setFitView(popoverOverlays, false, [28, 28, 28, 28], 720);
+      if (routeCityZoomIndicator) {
+        routeCityZoomIndicator.textContent = String(Math.round(popoverMap.getZoom()));
+      }
+    }
+
+    if (mainHost && window.AMap) {
+      const points = JSON.parse(mainHost.dataset.geo || "[]");
+      if (points.length) {
+        const centerLng = points.reduce((sum, item) => sum + item.lng, 0) / points.length;
+        const centerLat = points.reduce((sum, item) => sum + item.lat, 0) / points.length;
+        mainMap = new AMap.Map("case-amap", {
+          zoom: 6.6,
+          center: [centerLng, centerLat],
+          viewMode: "2D",
+          mapStyle: "amap://styles/whitesmoke",
+        });
+        mainMarkers = points.map((item) => {
+          const markerNode = document.createElement("div");
+          markerNode.className = item.is_terminal ? "route-city-marker route-city-marker-terminal" : "route-city-marker";
+          const marker = new AMap.Marker({
+            position: [item.lng, item.lat],
+            title: item.label,
+            content: markerNode,
+            offset: new AMap.Pixel(-7, -7),
+            extData: {city: item.name},
+            label: {
+              direction: "right",
+              offset: new AMap.Pixel(10, -4),
+              content: `<span class="amap-label-chip">${item.label}</span>`,
+            },
+          });
+          marker.on("click", () => {
+            const anchor = item.name.toLowerCase();
+            const cityData = cityByAnchor[anchor];
+            if (!cityData) return;
+            const accordion = document.getElementById(`city-${anchor}`);
+            if (accordion) accordion.open = true;
+            syncRouteHighlight(cityData.route_index || 0, anchor);
+            renderPopover(cityData);
+          });
+          mainMap.add(marker);
+          return marker;
+        });
+        for (let index = 0; index < points.length - 1; index += 1) {
+          const polyline = new AMap.Polyline({
+            path: [
+              [points[index].lng, points[index].lat],
+              [points[index + 1].lng, points[index + 1].lat],
+            ],
+            strokeColor: "#c9c8c4",
+            strokeWeight: 3.2,
+            strokeOpacity: 0.18,
+            lineJoin: "round",
+            lineCap: "round",
+            zIndex: 90,
+          });
+          mainMap.add(polyline);
+          mainPolylines.push(polyline);
+        }
+        mainMap.setFitView([...mainMarkers, ...mainPolylines], false, [64, 64, 64, 64], 860);
+      }
+    }
+
+    document.querySelectorAll(".city-amap").forEach((host) => {
+      const zone = JSON.parse(host.dataset.zone || "{}");
+      const markers = zone.markers || [];
+      if (!window.AMap || !zone.center || !markers.length) return;
+      const parentCard = host.closest(".city-map-card");
+      const map = new AMap.Map(host, {
+        zoom: 12.5,
+        center: zone.center,
+        viewMode: "2D",
+        mapStyle: "amap://styles/whitesmoke",
+        zoomEnable: false,
+        dragEnable: false,
+        doubleClickZoom: false,
+        keyboardEnable: false,
+        scrollWheel: false,
+      });
+      const overlays = markers.map((item) => {
+        const marker = createMarker(map, item, false);
+        map.add(marker);
+        const label = new AMap.Text({
+          text: item.label,
+          anchor: "center",
+          offset: new AMap.Pixel(22, 0),
+          position: [item.lng, item.lat],
+          style: {
+            border: "1px solid rgba(255,255,255,0.03)",
+            background: "rgba(255,255,255,0.26)",
+            color: "rgba(31,41,51,0.5)",
+            padding: "1px 6px",
+            borderRadius: "999px",
+            fontSize: "9px",
+            fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, PingFang SC, sans-serif",
+          },
+        });
+        map.add(label);
+        return [marker, label];
+      }).flat();
+      map.setFitView(overlays, false, [26, 26, 26, 26], 620);
+      if (parentCard) {
+        parentCard.classList.add("city-map-card--ready");
+      }
+    });
+
+    const accordions = Array.from(document.querySelectorAll(".city-accordion"));
+    accordions.forEach((accordion) => {
+      accordion.addEventListener("toggle", () => {
+        if (!accordion.open) return;
+        const routeIndex = Number(accordion.dataset.routeIndex || 0);
+        const anchor = accordion.id.replace("city-", "");
+        syncRouteHighlight(routeIndex, anchor);
+        renderPopover(cityByAnchor[anchor]);
+      });
+    });
+
+    if (routePopover) {
+      routePopover.classList.add("hidden");
+    }
+    syncRouteHighlight(-1);
+
+    if (routeCityClose) {
+      routeCityClose.addEventListener("click", () => {
+        routePopover.classList.add("hidden");
+        syncRouteHighlight(-1);
+      });
+    }
+
+    if (routeCityFit) {
+      routeCityFit.addEventListener("click", () => {
+        if (!popoverMap || !popoverOverlays.length) return;
+        popoverMap.setFitView(popoverOverlays, false, [28, 28, 28, 28], 720);
+      });
+    }
+
+    if (routeCityZoomIn) {
+      routeCityZoomIn.addEventListener("click", () => {
+        if (!popoverMap) return;
+        popoverMap.zoomIn();
+      });
+    }
+
+    if (routeCityZoomOut) {
+      routeCityZoomOut.addEventListener("click", () => {
+        if (!popoverMap) return;
+        popoverMap.zoomOut();
+      });
+    }
+
+    if (overlayToggle && overlayBody) {
+      overlayToggle.addEventListener("click", () => {
+        const collapsed = overlayBody.classList.toggle("collapsed");
+        overlayToggle.setAttribute("aria-expanded", String(!collapsed));
+        const icon = overlayToggle.querySelector(".share-overlay-toggle-icon");
+        if (icon) {
+          icon.textContent = collapsed ? "+" : "−";
+        }
+      });
+    }
+  })();
+</script>
+{% endif %}
+{% endblock %}

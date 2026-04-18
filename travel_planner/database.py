@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from .schemas import JobRecord, SourceStatus, TripPlanResult, TripRequest
+from .schemas import JobRecord, SourceStatus, TripPlanResult, TripRequest, TripShareLink, TripShareSnapshot
 
 
 def now_iso() -> str:
@@ -48,11 +48,32 @@ class JobRepository:
                     detail TEXT NOT NULL,
                     checked_at TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS share_snapshots (
+                    snapshot_id TEXT PRIMARY KEY,
+                    job_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS share_links (
+                    token TEXT PRIMARY KEY,
+                    snapshot_id TEXT NOT NULL,
+                    visibility TEXT NOT NULL DEFAULT 'token',
+                    expires_at TEXT,
+                    created_at TEXT NOT NULL,
+                    last_accessed_at TEXT,
+                    revoked_at TEXT
+                );
                 """
             )
             columns = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)").fetchall()}
             if "checkpoint_json" not in columns:
                 conn.execute("ALTER TABLE jobs ADD COLUMN checkpoint_json TEXT NOT NULL DEFAULT '{}'")
+            share_link_columns = {row["name"] for row in conn.execute("PRAGMA table_info(share_links)").fetchall()}
+            if "revoked_at" not in share_link_columns:
+                conn.execute("ALTER TABLE share_links ADD COLUMN revoked_at TEXT")
 
     def create_job(self, request: TripRequest) -> JobRecord:
         job_id = str(uuid.uuid4())
@@ -162,3 +183,96 @@ class JobRepository:
             )
             for row in rows
         ]
+
+    def create_share_snapshot(self, job_id: str, title: str, payload: dict) -> TripShareSnapshot:
+        snapshot_id = str(uuid.uuid4())
+        timestamp = now_iso()
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO share_snapshots (snapshot_id, job_id, title, payload_json, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (snapshot_id, job_id, title, json.dumps(payload, ensure_ascii=False), timestamp),
+            )
+        return self.get_share_snapshot(snapshot_id)
+
+    def get_share_snapshot(self, snapshot_id: str) -> TripShareSnapshot:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM share_snapshots WHERE snapshot_id = ?", (snapshot_id,)).fetchone()
+        if row is None:
+            raise KeyError(snapshot_id)
+        return TripShareSnapshot(
+            snapshot_id=row["snapshot_id"],
+            job_id=row["job_id"],
+            title=row["title"],
+            payload=json.loads(row["payload_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def create_share_link(self, snapshot_id: str, visibility: str = "token") -> TripShareLink:
+        token = uuid.uuid4().hex[:16]
+        timestamp = now_iso()
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO share_links (token, snapshot_id, visibility, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (token, snapshot_id, visibility, timestamp),
+            )
+        return self.get_share_link(token)
+
+    def get_share_link(self, token: str, *, allow_revoked: bool = False) -> TripShareLink:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM share_links WHERE token = ?", (token,)).fetchone()
+        if row is None:
+            raise KeyError(token)
+        if row["revoked_at"] and not allow_revoked:
+            raise KeyError(token)
+        return TripShareLink(
+            token=row["token"],
+            snapshot_id=row["snapshot_id"],
+            visibility=row["visibility"],
+            expires_at=datetime.fromisoformat(row["expires_at"]) if row["expires_at"] else None,
+            created_at=datetime.fromisoformat(row["created_at"]),
+            last_accessed_at=datetime.fromisoformat(row["last_accessed_at"]) if row["last_accessed_at"] else None,
+            revoked_at=datetime.fromisoformat(row["revoked_at"]) if row["revoked_at"] else None,
+        )
+
+    def touch_share_access(self, token: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE share_links SET last_accessed_at = ? WHERE token = ?",
+                (now_iso(), token),
+            )
+
+    def get_share_by_token(self, token: str) -> tuple[TripShareLink, TripShareSnapshot]:
+        link = self.get_share_link(token)
+        snapshot = self.get_share_snapshot(link.snapshot_id)
+        return link, snapshot
+
+    def revoke_share_link(self, token: str) -> None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT token FROM share_links WHERE token = ?", (token,)).fetchone()
+            if row is None:
+                raise KeyError(token)
+            conn.execute(
+                "UPDATE share_links SET revoked_at = ? WHERE token = ?",
+                (now_iso(), token),
+            )
+
+    def revoke_share_links_for_job(self, job_id: str) -> int:
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                UPDATE share_links
+                SET revoked_at = ?
+                WHERE revoked_at IS NULL
+                  AND snapshot_id IN (
+                    SELECT snapshot_id FROM share_snapshots WHERE job_id = ?
+                  )
+                """,
+                (now_iso(), job_id),
+            )
+        return int(cursor.rowcount or 0)

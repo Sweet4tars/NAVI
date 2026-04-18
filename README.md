@@ -26,7 +26,7 @@
 ## 安装
 
 ```powershell
-cd D:\code\travel-planner-agent
+cd <repo-root>
 python -m venv .venv
 .venv\Scripts\python -m pip install -U pip
 .venv\Scripts\python -m pip install -e .[dev]

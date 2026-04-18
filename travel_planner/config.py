@@ -15,10 +15,19 @@ class Settings:
     data_dir: Path = PROJECT_ROOT / ".data"
     db_path: Path = PROJECT_ROOT / ".data" / "travel_planner.db"
     browser_profile_dir: Path = PROJECT_ROOT / ".data" / "browser-profile"
+    runtime_dir: Path = PROJECT_ROOT / ".data" / "runtime"
+    logs_dir: Path = PROJECT_ROOT / ".data" / "logs"
     browser_timeout_ms: int = int(os.getenv("TRAVEL_PLANNER_BROWSER_TIMEOUT_MS", "12000"))
     browser_headless: bool = os.getenv("TRAVEL_PLANNER_BROWSER_HEADLESS", "false").lower() == "true"
     default_city_region: str = "中国"
     amap_api_key: str = os.getenv("AMAP_API_KEY", "").strip()
+    amap_js_api_key: str = os.getenv("AMAP_JS_API_KEY", "").strip()
+    amap_security_js_code: str = os.getenv("AMAP_SECURITY_JS_CODE", "").strip()
+    public_base_url: str = os.getenv("TRAVEL_PLANNER_PUBLIC_BASE_URL", "").strip()
+    public_base_url_path: Path = PROJECT_ROOT / ".data" / "runtime" / "public_base_url.txt"
+    cloudflared_binary: str = os.getenv("TRAVEL_PLANNER_CLOUDFLARED_BIN", "").strip()
+    cloudflared_pid_path: Path = PROJECT_ROOT / ".data" / "runtime" / "cloudflared.pid"
+    cloudflared_log_path: Path = PROJECT_ROOT / ".data" / "logs" / "cloudflared.out.log"
     xiaohongshu_result_limit: int = int(os.getenv("TRAVEL_PLANNER_XHS_LIMIT", "12"))
     hotel_result_limit: int = int(os.getenv("TRAVEL_PLANNER_HOTEL_LIMIT", "5"))
     rail_result_limit: int = int(os.getenv("TRAVEL_PLANNER_RAIL_LIMIT", "6"))
@@ -27,6 +36,8 @@ class Settings:
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.browser_profile_dir.mkdir(parents=True, exist_ok=True)
+        self.runtime_dir.mkdir(parents=True, exist_ok=True)
+        self.logs_dir.mkdir(parents=True, exist_ok=True)
 
 
 def load_settings() -> Settings:

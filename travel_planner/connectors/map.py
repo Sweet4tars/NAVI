@@ -61,6 +61,51 @@ class MapConnector:
             }
         ], ["未配置高德 Key，已使用启发式自驾成本。"]
 
+    def search_places(self, keyword: str, city: str = "", *, limit: int = 5) -> list[dict]:
+        if not self.settings.amap_api_key:
+            return []
+        params = urlencode(
+            {
+                "key": self.settings.amap_api_key,
+                "keywords": keyword,
+                "city": city,
+                "citylimit": "true" if city else "false",
+                "offset": str(limit),
+                "extensions": "base",
+            }
+        )
+        request = Request(f"https://restapi.amap.com/v3/place/text?{params}", headers={"User-Agent": "Mozilla/5.0"})
+        with urlopen(request, timeout=20) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        places: list[dict] = []
+        for poi in payload.get("pois") or []:
+            location = poi.get("location", "")
+            lng = 0.0
+            lat = 0.0
+            if "," in location:
+                lng_text, lat_text = location.split(",", 1)
+                lng = float(lng_text)
+                lat = float(lat_text)
+            name = poi.get("name") or keyword
+            places.append(
+                {
+                    "name": name,
+                    "address": poi.get("address", ""),
+                    "district": poi.get("adname") or city,
+                    "type": poi.get("type", ""),
+                    "lng": lng,
+                    "lat": lat,
+                    "url": self._amap_marker_url(name, lng, lat),
+                }
+            )
+        return places
+
+    def geocode_keyword(self, keyword: str, city: str = "") -> tuple[float, float] | None:
+        results = self.search_places(keyword, city, limit=1)
+        if not results:
+            return None
+        return results[0]["lat"], results[0]["lng"]
+
     def _search_poi(self, keyword: str, city: str) -> PoiCandidate | None:
         params = urlencode(
             {
@@ -125,3 +170,7 @@ class MapConnector:
             reason="来自攻略关键词",
             estimated_visit_minutes=120 if "街" in name or "古镇" in name else 90,
         )
+
+    @staticmethod
+    def _amap_marker_url(name: str, lng: float, lat: float) -> str:
+        return f"https://uri.amap.com/marker?position={lng:.6f},{lat:.6f}&name={name}"

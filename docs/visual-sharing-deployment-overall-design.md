@@ -18,13 +18,13 @@
 
 相关代码位置：
 
-- [main.py](D:/code/travel-planner-agent/travel_planner/main.py)
-- [cli.py](D:/code/travel-planner-agent/travel_planner/cli.py)
-- [schemas.py](D:/code/travel-planner-agent/travel_planner/schemas.py)
-- [service.py](D:/code/travel-planner-agent/travel_planner/service.py)
-- [database.py](D:/code/travel-planner-agent/travel_planner/database.py)
-- [result.html](D:/code/travel-planner-agent/travel_planner/templates/result.html)
-- [style.css](D:/code/travel-planner-agent/travel_planner/static/style.css)
+- [main.py](../travel_planner/main.py)
+- [cli.py](../travel_planner/cli.py)
+- [schemas.py](../travel_planner/schemas.py)
+- [service.py](../travel_planner/service.py)
+- [database.py](../travel_planner/database.py)
+- [result.html](../travel_planner/templates/result.html)
+- [style.css](../travel_planner/static/style.css)
 
 ## 当前现实约束
 
@@ -46,7 +46,7 @@
 
 ### 3. 当前结果页还不是“可视化分享页”
 
-当前 [result.html](D:/code/travel-planner-agent/travel_planner/templates/result.html) 主要是三列卡片：
+当前 [result.html](../travel_planner/templates/result.html) 主要是三列卡片：
 
 - 每日行程
 - 交通 / 酒店
@@ -56,7 +56,7 @@
 
 ### 4. 当前 schema 还缺关键展示数据
 
-这是最重要的一条。当前 [schemas.py](D:/code/travel-planner-agent/travel_planner/schemas.py) 虽然已经有：
+这是最重要的一条。当前 [schemas.py](../travel_planner/schemas.py) 虽然已经有：
 
 - `DailyPlan`
 - `TransportOption`
@@ -119,7 +119,7 @@
 
 当前已有：
 
-- [index.html](D:/code/travel-planner-agent/travel_planner/templates/index.html)
+- [index.html](../travel_planner/templates/index.html)
 
 ### 2. 结果页
 
@@ -131,7 +131,7 @@
 
 当前已有雏形：
 
-- [result.html](D:/code/travel-planner-agent/travel_planner/templates/result.html)
+- [result.html](../travel_planner/templates/result.html)
 
 ### 3. 分享页
 
@@ -202,7 +202,7 @@
 
 ### 当前 UI 与目标 UI 的差距
 
-当前 [result.html](D:/code/travel-planner-agent/travel_planner/templates/result.html) 里：
+当前 [result.html](../travel_planner/templates/result.html) 里：
 
 - 已有每日卡片
 - 已有酒店候选
@@ -309,7 +309,7 @@
 原因：
 
 - 当前项目已经有 `AMAP_API_KEY` 配置
-- [map.py](D:/code/travel-planner-agent/travel_planner/connectors/map.py) 已经使用高德做 POI 与驾车估算
+- [map.py](../travel_planner/connectors/map.py) 已经使用高德做 POI 与驾车估算
 - 同一地图服务商更容易让 POI、路线、分享页显示一致
 
 ### 地图前提
@@ -337,7 +337,7 @@
 
 - 某一时刻冻结出来的结果快照
 
-具体逻辑已经在 [sharing-platform-design.md](D:/code/travel-planner-agent/docs/sharing-platform-design.md) 里展开，这里只定总原则：
+具体逻辑已经在 [sharing-platform-design.md](sharing-platform-design.md) 里展开，这里只定总原则：
 
 1. 用户在结果页点击“创建分享链接”
 2. 服务端读取 `job.result`
@@ -432,7 +432,7 @@ http://<你的局域网IP>:8091/share/<token>
 
 ## 当前已经有的结构
 
-在 [schemas.py](D:/code/travel-planner-agent/travel_planner/schemas.py) 里，当前有：
+在 [schemas.py](../travel_planner/schemas.py) 里，当前有：
 
 - `DailyPlan`
 - `TransportOption`
@@ -514,7 +514,7 @@ class RouteLeg(BaseModel):
 - `TripShareSnapshot`
 - `TripShareLink`
 
-这个在 [sharing-platform-design.md](D:/code/travel-planner-agent/docs/sharing-platform-design.md) 里已经定了。
+这个在 [sharing-platform-design.md](sharing-platform-design.md) 里已经定了。
 
 ### 5. 可视化专用显示元数据
 
@@ -629,7 +629,7 @@ class RouteLeg(BaseModel):
 
 ```text
 http://127.0.0.1:8091
-http://192.168.1.23:8091
+http://<LAN-IP>:8091
 https://trip.example.com
 ```
 

@@ -37,7 +37,7 @@ User invokes `/domestic-travel-planner-skill` followed by their input:
 2. 优先调用本地 CLI：
 
 ```powershell
-cd D:\code\travel-planner-agent
+cd <repo-root>
 .venv\Scripts\python -m travel_planner.cli plan --origin <起点> --destination <终点> --start-date <YYYY-MM-DD> --days <天数> --adults <人数> --transport-mode <rail|drive>
 ```
 

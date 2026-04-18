@@ -8,6 +8,7 @@ import uvicorn
 
 from .debug_tools import capture_qunar_session, capture_qunar_session_attached, replay_captured_request
 from .debug_tools.browser_launch import launch_manual_managed_chromium
+from .tunnel import cloudflared_status, start_cloudflared_tunnel, stop_cloudflared_tunnel
 from .main import create_app
 from .schemas import Travelers, TripRequest
 from .service import PlanningService
@@ -64,6 +65,14 @@ def build_parser() -> argparse.ArgumentParser:
     qunar_capture_attach.add_argument("--cdp-endpoint", default="http://127.0.0.1:9222")
     qunar_capture_attach.add_argument("--output-dir")
     qunar_capture_attach.add_argument("--duration-seconds", type=int)
+
+    cloudflared_start = subparsers.add_parser("cloudflared-start", help="Start a detached cloudflared quick tunnel for the local share server.")
+    cloudflared_start.add_argument("--target-url", default="http://127.0.0.1:8091")
+    cloudflared_start.add_argument("--binary", default="")
+    cloudflared_start.add_argument("--timeout-seconds", type=int, default=25)
+
+    subparsers.add_parser("cloudflared-stop", help="Stop the detached cloudflared tunnel and clear the saved public URL.")
+    subparsers.add_parser("cloudflared-status", help="Print the current cloudflared tunnel status and saved public URL.")
     return parser
 
 
@@ -143,6 +152,26 @@ def run_qunar_capture_attach(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_cloudflared_start(args: argparse.Namespace) -> int:
+    result = start_cloudflared_tunnel(
+        target_url=args.target_url,
+        binary=args.binary,
+        timeout_seconds=args.timeout_seconds,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def run_cloudflared_stop(_: argparse.Namespace) -> int:
+    print(json.dumps(stop_cloudflared_tunnel(), ensure_ascii=False, indent=2))
+    return 0
+
+
+def run_cloudflared_status(_: argparse.Namespace) -> int:
+    print(json.dumps(cloudflared_status(), ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -163,6 +192,12 @@ def main() -> int:
         return run_qunar_open_manual(args)
     if args.command == "qunar-capture-attach":
         return run_qunar_capture_attach(args)
+    if args.command == "cloudflared-start":
+        return run_cloudflared_start(args)
+    if args.command == "cloudflared-stop":
+        return run_cloudflared_stop(args)
+    if args.command == "cloudflared-status":
+        return run_cloudflared_status(args)
     parser.error("Unsupported command")
     return 1
 

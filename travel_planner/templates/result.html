@@ -5,6 +5,23 @@
     <p class="eyebrow">Trip Result</p>
     <h1>{{ job.request.origin }} -> {{ job.request.destination }}</h1>
     <p class="lede">{{ job.result.summary if job.result else "Result is not ready yet." }}</p>
+    <div class="action-row">
+      <a class="ghost-btn" href="/share/case-studies/yunnan-roadtrip">查看云南案例分享页</a>
+      <a class="primary-btn" href="/share/case-studies/yunnan-roadtrip.xlsx">下载云南案例 Excel</a>
+      {% if job.result %}
+      <button id="create-share-btn" type="button" class="ghost-btn" onclick="createShare()">创建当前行程分享链接</button>
+      {% endif %}
+    </div>
+    <p class="share-public-hint">
+      {% if public_base_url %}
+      当前已挂载公网分享域名：<a href="{{ public_base_url }}" target="_blank" rel="noreferrer">{{ public_base_url }}</a>
+      {% else %}
+      当前未检测到公网分享域名，生成的链接仍以本地调试地址为主。
+      {% endif %}
+    </p>
+    {% if job.result %}
+    <div id="share-output" class="share-output hidden"></div>
+    {% endif %}
   </div>
 </section>
 
@@ -80,5 +97,46 @@
 <section class="panel">
   <p>Result is not ready yet. Return to the job page and refresh.</p>
 </section>
+{% endif %}
+
+{% if job.result %}
+<script>
+  async function createShare() {
+    const btn = document.getElementById("create-share-btn");
+    const output = document.getElementById("share-output");
+    btn.disabled = true;
+    btn.textContent = "正在创建分享链接...";
+    try {
+      const response = await fetch("/api/trips/{{ job.job_id }}/share", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({visibility: "token"})
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || "创建失败");
+      }
+      const publicRows = payload.public_base_url ? [
+        `<p><strong>公网分享页：</strong><a href="${payload.public_share_url}" target="_blank" rel="noreferrer">${payload.public_share_url}</a></p>`,
+        `<p><strong>公网 Excel：</strong><a href="${payload.public_excel_url}" target="_blank" rel="noreferrer">${payload.public_excel_url}</a></p>`,
+        `<p><strong>公网 PDF：</strong><a href="${payload.public_pdf_url}" target="_blank" rel="noreferrer">${payload.public_pdf_url}</a></p>`
+      ] : [];
+      const localRows = [
+        `<p><strong>本机分享页：</strong><a href="${payload.local_share_url || payload.share_url}" target="_blank" rel="noreferrer">${payload.local_share_url || payload.share_url}</a></p>`,
+        `<p><strong>本机 Excel：</strong><a href="${payload.local_excel_url || payload.excel_url}" target="_blank" rel="noreferrer">${payload.local_excel_url || payload.excel_url}</a></p>`,
+        `<p><strong>本机 PDF：</strong><a href="${payload.local_pdf_url || payload.pdf_url}" target="_blank" rel="noreferrer">${payload.local_pdf_url || payload.pdf_url}</a></p>`
+      ];
+      output.classList.remove("hidden");
+      output.innerHTML = publicRows.concat(localRows).join("");
+      btn.textContent = "重新生成分享链接";
+    } catch (error) {
+      output.classList.remove("hidden");
+      output.innerHTML = `<p><strong>创建失败：</strong>${error.message}</p>`;
+      btn.textContent = "创建当前行程分享链接";
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
 {% endif %}
 {% endblock %}

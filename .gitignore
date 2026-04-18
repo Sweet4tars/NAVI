@@ -25,3 +25,9 @@ Desktop.ini
 
 # Logs
 *.log
+
+# Office temp files
+~$*.xlsx
+
+# Generated planning exports
+docs/*.xlsx

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title or "Travel Planner Agent" }}</title>
   <link rel="stylesheet" href="/static/style.css">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
   <div class="bg-orbit orbit-a"></div>
@@ -12,5 +13,6 @@
   <main class="page-shell">
     {% block content %}{% endblock %}
   </main>
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>

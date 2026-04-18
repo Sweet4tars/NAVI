@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -11,6 +11,7 @@ PaceMode = Literal["slow", "balanced", "dense"]
 JobStatus = Literal["ready", "collecting", "partial_result", "awaiting_login", "failed", "completed"]
 CandidateKind = Literal["hotel", "strategy", "region_hint"]
 PriceConfidence = Literal["observed", "hidden", "estimated"]
+ShareVisibility = Literal["token"]
 
 
 class Travelers(BaseModel):
@@ -174,3 +175,40 @@ class JobRecord(BaseModel):
     source_statuses: dict[str, SourceStatus] = Field(default_factory=dict)
     error: str | None = None
     checkpoint: dict = Field(default_factory=dict, exclude=True)
+
+
+class TripShareSnapshot(BaseModel):
+    snapshot_id: str
+    job_id: str
+    title: str
+    payload: dict[str, Any]
+    created_at: datetime
+
+
+class TripShareLink(BaseModel):
+    token: str
+    snapshot_id: str
+    visibility: ShareVisibility = "token"
+    expires_at: datetime | None = None
+    created_at: datetime
+    last_accessed_at: datetime | None = None
+    revoked_at: datetime | None = None
+
+
+class TripShareCreateRequest(BaseModel):
+    visibility: ShareVisibility = "token"
+
+
+class TripShareCreateResponse(BaseModel):
+    token: str
+    snapshot_id: str
+    share_url: str
+    excel_url: str
+    pdf_url: str
+    public_base_url: str | None = None
+    public_share_url: str | None = None
+    public_excel_url: str | None = None
+    public_pdf_url: str | None = None
+    local_share_url: str | None = None
+    local_excel_url: str | None = None
+    local_pdf_url: str | None = None

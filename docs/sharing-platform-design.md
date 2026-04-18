@@ -18,8 +18,8 @@
 - 服务端：`FastAPI`
 - 页面层：`Jinja2 Templates`
 - 存储：`SQLite`
-- 结果页：已有 [result.html](D:/code/travel-planner-agent/travel_planner/templates/result.html)
-- 任务与结果持久化：已有 [database.py](D:/code/travel-planner-agent/travel_planner/database.py)
+- 结果页：已有 [result.html](../travel_planner/templates/result.html)
+- 任务与结果持久化：已有 [database.py](../travel_planner/database.py)
 
 所以第一版不需要做“共享社区”，只需要在现有结果页链路上补一层“可分享快照”。
 
@@ -61,7 +61,7 @@ PDF 当然要做，但只能做辅助手段，原因如下：
 
 ### 生成后
 
-用户完成一次规划后，在 [result.html](D:/code/travel-planner-agent/travel_planner/templates/result.html) 页面新增按钮：
+用户完成一次规划后，在 [result.html](../travel_planner/templates/result.html) 页面新增按钮：
 
 - `创建分享链接`
 - `复制链接`
@@ -92,7 +92,7 @@ PDF 当然要做，但只能做辅助手段，原因如下：
 
 ## 核心原则：分享的是快照，不是任务
 
-当前项目的核心实体是 `JobRecord`，定义在 [schemas.py](D:/code/travel-planner-agent/travel_planner/schemas.py)。
+当前项目的核心实体是 `JobRecord`，定义在 [schemas.py](../travel_planner/schemas.py)。
 
 但 `job` 的职责是“任务执行过程”，并不等于“可分享成果”。原因：
 
@@ -112,7 +112,7 @@ PDF 当然要做，但只能做辅助手段，原因如下：
 
 ## 数据模型设计
 
-建议在 [database.py](D:/code/travel-planner-agent/travel_planner/database.py) 新增两张表。
+建议在 [database.py](../travel_planner/database.py) 新增两张表。
 
 ### 1. `trip_share_snapshot`
 
@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS trip_share_link (
 
 ## 后端接口设计
 
-建议在 [main.py](D:/code/travel-planner-agent/travel_planner/main.py) 增加以下接口。
+建议在 [main.py](../travel_planner/main.py) 增加以下接口。
 
 ### 1. 创建分享链接
 
@@ -283,7 +283,7 @@ POST /api/share/{token}/revoke
 
 ### 1. 结果页
 
-在现有 [result.html](D:/code/travel-planner-agent/travel_planner/templates/result.html) 上增加一个“分享工具条”：
+在现有 [result.html](../travel_planner/templates/result.html) 上增加一个“分享工具条”：
 
 - `创建分享链接`
 - `复制分享链接`
@@ -407,7 +407,7 @@ PDF 应保留：
 
 文件：
 
-- [schemas.py](D:/code/travel-planner-agent/travel_planner/schemas.py)
+- [schemas.py](../travel_planner/schemas.py)
 
 建议新增：
 
@@ -420,7 +420,7 @@ PDF 应保留：
 
 文件：
 
-- [database.py](D:/code/travel-planner-agent/travel_planner/database.py)
+- [database.py](../travel_planner/database.py)
 
 建议新增方法：
 
@@ -434,7 +434,7 @@ PDF 应保留：
 
 文件：
 
-- [service.py](D:/code/travel-planner-agent/travel_planner/service.py)
+- [service.py](../travel_planner/service.py)
 
 建议新增方法：
 
@@ -447,7 +447,7 @@ PDF 应保留：
 
 文件：
 
-- [main.py](D:/code/travel-planner-agent/travel_planner/main.py)
+- [main.py](../travel_planner/main.py)
 
 建议新增路由：
 
@@ -461,7 +461,7 @@ PDF 应保留：
 
 文件：
 
-- [result.html](D:/code/travel-planner-agent/travel_planner/templates/result.html)
+- [result.html](../travel_planner/templates/result.html)
 - 新增 `share.html`
 - 新增 `print-share.html` 或共用 `share.html`
 
@@ -469,7 +469,7 @@ PDF 应保留：
 
 文件：
 
-- [style.css](D:/code/travel-planner-agent/travel_planner/static/style.css)
+- [style.css](../travel_planner/static/style.css)
 
 建议新增：
 
@@ -565,11 +565,11 @@ PDF 应保留：
 
 如果要直接开始做，建议按下面顺序改代码：
 
-1. 在 [schemas.py](D:/code/travel-planner-agent/travel_planner/schemas.py) 增加分享相关 schema
-2. 在 [database.py](D:/code/travel-planner-agent/travel_planner/database.py) 增加分享表和 repository 方法
-3. 在 [service.py](D:/code/travel-planner-agent/travel_planner/service.py) 加分享快照创建逻辑
-4. 在 [main.py](D:/code/travel-planner-agent/travel_planner/main.py) 增加 `/share` 和 `/api/share` 路由
+1. 在 [schemas.py](../travel_planner/schemas.py) 增加分享相关 schema
+2. 在 [database.py](../travel_planner/database.py) 增加分享表和 repository 方法
+3. 在 [service.py](../travel_planner/service.py) 加分享快照创建逻辑
+4. 在 [main.py](../travel_planner/main.py) 增加 `/share` 和 `/api/share` 路由
 5. 新增 `share.html`
-6. 修改 [result.html](D:/code/travel-planner-agent/travel_planner/templates/result.html) 增加“创建分享链接 / 导出 PDF”按钮
+6. 修改 [result.html](../travel_planner/templates/result.html) 增加“创建分享链接 / 导出 PDF”按钮
 7. 最后补 `Playwright PDF`
 
