@@ -207,7 +207,8 @@ def test_index_page_renders():
     client = TestClient(app)
     response = client.get("/")
     assert response.status_code == 200
-    assert "Domestic Trip Planner" in response.text
+    assert "Open Source Travel Agent" in response.text
+    assert "prepublish_check.py" in response.text
 
 
 def test_case_study_visual_page_renders():

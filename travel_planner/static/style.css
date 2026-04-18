@@ -135,6 +135,19 @@ body {
   padding: 22px;
 }
 
+.hero-card-kicker {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.hero-card-note {
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.58;
+}
+
 .inline-list {
   margin: 14px 0 0;
   padding: 0;
@@ -222,6 +235,48 @@ button {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
+}
+
+.home-info-grid {
+  margin-bottom: 24px;
+}
+
+.home-checklist {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  line-height: 1.65;
+}
+
+.home-checklist li + li {
+  margin-top: 8px;
+}
+
+.home-command-panel {
+  margin-bottom: 24px;
+}
+
+.home-command-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.code-callout {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(23, 34, 39, 0.08);
+  background: rgba(255, 255, 255, 0.56);
+  color: var(--ink);
+  font: 500 0.95rem/1.55 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.code-callout code {
+  white-space: pre-wrap;
 }
 
 .timeline-card,
@@ -1021,6 +1076,10 @@ button {
   .result-grid,
   .job-grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-command-head {
+    flex-direction: column;
   }
 
   .share-stage-map-shell {

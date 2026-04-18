@@ -2,6 +2,10 @@
 .data/
 .venv/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.nox/
+.tox/
 
 # Python cache / build artifacts
 __pycache__/
@@ -12,22 +16,53 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+site/
+pip-wheel-metadata/
 
 # Test / coverage artifacts
 .coverage
+.coverage.*
 htmlcov/
+playwright-report/
+test-results/
 
 # IDE / OS noise
 .idea/
 .vscode/
+.DS_Store
 Thumbs.db
 Desktop.ini
 
 # Logs
 *.log
+*.pid
+*.seed
+*.stackdump
 
 # Office temp files
 ~$*.xlsx
 
 # Generated planning exports
 docs/*.xlsx
+docs/*.pdf
+docs/*.zip
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+*.pem
+*.key
+*.crt
+*.p12
+
+# Browser / capture artifacts
+*.har
+*.trace
+*.orig
+*.rej
+*.tmp
+*.temp
+scripts/__pycache__/

@@ -2,50 +2,100 @@
 {% block content %}
 <section class="hero">
   <div>
-    <p class="eyebrow">Domestic Trip Planner</p>
-    <h1>Turn trains, hotels, guide notes, and budget into one trip brief.</h1>
-    <p class="lede">Use the web form for repeated planning, or call the same backend from Codex skill and CLI.</p>
+    <p class="eyebrow">Open Source Travel Agent</p>
+    <h1>把攻略、车次、酒店、预算和分享页收束成一条可复用的旅游规划链路。</h1>
+    <p class="lede">这一版聚焦中国境内旅行规划。你可以直接在网页里跑，也可以复用同一套后端给 Codex skill、CLI 和自动化分享链路使用。</p>
+    <div class="action-row">
+      <a class="primary-btn" href="/share/case-studies/yunnan-roadtrip">查看云南案例分享页</a>
+      <a class="ghost-btn" href="/case-studies/yunnan-roadtrip">查看案例详情</a>
+    </div>
   </div>
   <div class="hero-card">
-    <p>Current scope</p>
+    <p class="hero-card-kicker">Current Scope</p>
     <ul class="inline-list">
-      <li>Mainland China</li>
-      <li>Rail / Drive</li>
-      <li>Planning only</li>
-      <li>Reuse local login state</li>
+      <li>中国境内</li>
+      <li>铁路 / 自驾</li>
+      <li>登录态复用</li>
+      <li>分享快照</li>
+      <li>不代下单</li>
     </ul>
+    <p class="hero-card-note">浏览器优先级固定为 `Edge -> 项目持久化 Chromium -> Chrome`。</p>
   </div>
 </section>
 
+<section class="job-grid home-info-grid">
+  <article class="panel">
+    <p class="eyebrow">Sources</p>
+    <h2>当前接入</h2>
+    <ul class="home-checklist">
+      <li>小红书攻略摘要与 POI</li>
+      <li>12306 只读车次查询</li>
+      <li>高德路线估算与地图展示</li>
+      <li>携程 / 美团 / 飞猪酒店候选</li>
+      <li>动态 share + Excel / PDF 导出</li>
+    </ul>
+  </article>
+
+  <article class="panel">
+    <p class="eyebrow">Boundaries</p>
+    <h2>能力边界</h2>
+    <ul class="home-checklist">
+      <li>做规划，不做代下单、代抢票或绕过官方限制</li>
+      <li>不要求导出 Cookie，只复用本机已有登录态</li>
+      <li>验证失败后支持 checkpoint 恢复，而不是整单重跑</li>
+      <li>分享页读取快照，不会在外部访问时重新抓站</li>
+    </ul>
+  </article>
+</section>
+
+<section class="panel home-command-panel">
+  <div class="home-command-head">
+    <div>
+      <p class="eyebrow">Publish Ready</p>
+      <h2>开源发布前检查</h2>
+      <p class="lede compact">仓库里已经内置发布前脱敏检查脚本，会扫描本机绝对路径、局域网 IP、临时隧道域名、疑似密钥和不该被跟踪的导出文件。</p>
+    </div>
+    <span class="pill">推荐每次 push 前执行</span>
+  </div>
+  <pre class="code-callout"><code>python scripts/prepublish_check.py</code></pre>
+</section>
+
 <section class="panel">
+  <div class="home-command-head">
+    <div>
+      <p class="eyebrow">Quick Start</p>
+      <h2>试跑一条规划</h2>
+    </div>
+    <span class="pill">Web 表单入口</span>
+  </div>
   <form method="post" action="/plan" class="trip-form">
-    <label>Origin<input name="origin" value="Shanghai" required></label>
-    <label>Destination<input name="destination" value="Suzhou" required></label>
-    <label>Start date<input name="start_date" type="date" value="{{ today }}" required></label>
-    <label>End date<input name="end_date" type="date"></label>
-    <label>Days<input name="days" type="number" value="3" min="1" max="15"></label>
-    <label>Adults<input name="adults" type="number" value="2" min="1" max="12"></label>
-    <label>Children<input name="children" type="number" value="0" min="0" max="8"></label>
-    <label>Transport
+    <label>出发地<input name="origin" value="上海" required></label>
+    <label>目的地<input name="destination" value="苏州" required></label>
+    <label>开始日期<input name="start_date" type="date" value="{{ today }}" required></label>
+    <label>结束日期<input name="end_date" type="date"></label>
+    <label>天数<input name="days" type="number" value="3" min="1" max="15"></label>
+    <label>成人<input name="adults" type="number" value="2" min="1" max="12"></label>
+    <label>儿童<input name="children" type="number" value="0" min="0" max="8"></label>
+    <label>出行方式
       <select name="transport_mode">
-        <option value="rail">Rail</option>
-        <option value="drive">Drive</option>
+        <option value="rail">铁路</option>
+        <option value="drive">自驾</option>
       </select>
     </label>
-    <label>Hotel min<input name="hotel_budget_min" type="number" min="0" step="1"></label>
-    <label>Hotel max<input name="hotel_budget_max" type="number" min="0" step="1" value="600"></label>
-    <label>Pace
+    <label>酒店最低预算<input name="hotel_budget_min" type="number" min="0" step="1"></label>
+    <label>酒店最高预算<input name="hotel_budget_max" type="number" min="0" step="1" value="600"></label>
+    <label>节奏
       <select name="pace">
-        <option value="slow">Slow</option>
-        <option value="balanced" selected>Balanced</option>
-        <option value="dense">Dense</option>
+        <option value="slow">慢</option>
+        <option value="balanced" selected>均衡</option>
+        <option value="dense">紧凑</option>
       </select>
     </label>
-    <label>Must go<input name="must_go" placeholder="Humble Administrator's Garden, Pingjiang Road"></label>
-    <label>Avoid<input name="avoid" placeholder="Crowded malls, early departures"></label>
-    <label>Hotel prefs<input name="hotel_preferences" placeholder="Near metro, breakfast, quiet"></label>
-    <label class="checkbox"><input name="parking_required" type="checkbox" value="true"> Parking required</label>
-    <button type="submit" class="primary-btn">Build trip</button>
+    <label>必须去<input name="must_go" placeholder="拙政园, 平江路"></label>
+    <label>尽量避开<input name="avoid" placeholder="商场, 早班车"></label>
+    <label>住宿偏好<input name="hotel_preferences" placeholder="靠近地铁, 安静, 含早"></label>
+    <label class="checkbox"><input name="parking_required" type="checkbox" value="true"> 需要停车</label>
+    <button type="submit" class="primary-btn">开始生成行程</button>
   </form>
 </section>
 {% endblock %}

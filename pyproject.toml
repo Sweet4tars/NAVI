@@ -18,6 +18,10 @@ dependencies = [
   "uvicorn[standard]>=0.30,<1",
 ]
 
+[project.scripts]
+travel-planner = "travel_planner.cli:main"
+travel-planner-publish-check = "travel_planner.publish_check:main"
+
 [project.optional-dependencies]
 dev = [
   "httpx>=0.27,<1",
